@@ -17,6 +17,9 @@ jobs:
           name: Install fastlane
           command: gem install fastlane
       - run:
+          name: Init fastlane
+          command: fastlane init
+      - run:
           name: Download Dependencies
           command: ./gradlew androidDependencies
       - save_cache:
