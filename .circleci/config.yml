@@ -34,3 +34,10 @@ jobs:
           destination: reports
       - store_test_results:
           path: app/build/test-results
+      - run:
+          name: Notify fail
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "develop" ] || [ "${CIRCLE_BRANCH}" == "master" ]; then
+              fastlane send_fail_message
+            fi
+              when: on_fail
