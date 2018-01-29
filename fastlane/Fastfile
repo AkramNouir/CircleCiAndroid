@@ -36,6 +36,11 @@ platform :android do
   end
 end
 
+lane :build do |options|
+    schema = options[:release] ? "Release" : "Debug"
+      gradle(task: 'assemble', build_type: schema)
+end
+
 lane :send_fail_message do
     slack(
       message: 'Build failed',
