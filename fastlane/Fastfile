@@ -27,3 +27,31 @@ lane :send_fail_message do
       channel: '#build'
     )
 end
+
+lane :send_confirmation do |options|
+    message = options[:release_store] ? "PlayStore" : "HockeyApp"
+    slack(
+      message: 'Successfully published on ' + message,
+      slack_url: 'https://hooks.slack.com/services/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',
+      channel: '#build'
+    )
+end
+
+lane :deploy do |options|
+    store_release = options[:release_store]
+    if(store_release)
+        # TODO to implement real supply
+        supply
+    else
+        # hockey(api_token: "850b3c0a4a5342079da323aef2ede414")
+    end
+end
+
+lane :build_n_deploy do |options|
+  release = options[:release]
+  release_store = options[:release_store]
+  # build the release variant
+  build(release: release)
+  deploy(release_store: release_store)
+  send_confirmation(release_store: release_store)
+end

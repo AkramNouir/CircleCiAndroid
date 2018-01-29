@@ -66,6 +66,26 @@ jobs:
           JVM_OPTS: -Xmx3200m
     steps: *checkout_test_build
 
+  # Deploy jobs
+  deploy_develop:
+    <<: *default_work_dir
+    docker:
+      - image: circleci/android:api-25-alpha
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - run:
+          name: Install fastlane
+          command: gem install fastlane
+      - run:
+          name: Init fastlane
+          command: fastlane init
+      - restore_cache:
+          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+      - run:
+          name: Deploy Develop
+          command: fastlane build_n_deploy release:true release_store:false
+
 workflows:
   version: 2
 
@@ -77,6 +97,13 @@ workflows:
           filters:
             branches:
               ignore: /(master)/
+      # Build, test and deploy when merging staging
+      - deploy_develop:
+          requires:
+            - build_develop
+          filters:
+            branches:
+                only: develop
 
       # Build, test and deploy when merging master
       - build_master:
