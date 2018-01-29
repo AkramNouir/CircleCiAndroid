@@ -1,43 +1,67 @@
 version: 2
+
+# Default working directory
+default_work_dir: &default_work_dir
+  working_directory: ~/app
+
+# Default steps
+checkout_test_build: &checkout_test_build
+  # Install dependencies
+  # Run lint and unit tests
+  # Save the dist file in cache to restore it when deploying
+  - checkout
+  - restore_cache:
+      key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+  - run:
+      name: chmod permissions
+      command: chmod +x ./gradlew
+  - run:
+      name: Download Dependencies
+      command: ./gradlew androidDependencies
+  - save_cache:
+      paths:
+        - ~/.gradle
+      key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+  - run:
+      name: Install fastlane
+      command: gem install fastlane
+  - run:
+      name: Init fastlane
+      command: fastlane init
+  - run:
+      name: Run Tests
+      command: ./gradlew lint test
+  - store_artifacts:
+      path: app/build/reports
+      destination: reports
+  - store_test_results:
+      path: app/build/test-results
+  - run:
+      name: Notify fail
+      command: |
+        if [ "${CIRCLE_BRANCH}" == "develop" ] || [ "${CIRCLE_BRANCH}" == "master" ]; then
+          fastlane send_fail_message
+        fi
+      when: on_fail
+  - persist_to_workspace:
+      root: /home/circleci
+      paths:
+        - app
+        - .bundle
+
 jobs:
-  build:
-    working_directory: ~/code
+  # Build jobs
+  build_develop:
+    <<: *default_work_dir
     docker:
       - image: circleci/android:api-26-alpha
     environment:
       JVM_OPTS: -Xmx3200m
-    steps:
-      - checkout
-      - restore_cache:
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
-#      - run:
-#         name: Chmod permissions #if permission for Gradlew Dependencies fail, use this. 
-#         command: sudo chmod +x ./gradlew
-      - run:
-          name: Install fastlane
-          command: gem install fastlane
-      - run:
-          name: Init fastlane
-          command: fastlane init
-      - run:
-          name: Download Dependencies
-          command: ./gradlew androidDependencies
-      - save_cache:
-          paths:
-            - ~/.gradle
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
-      - run:
-          name: Run Tests
-          command: ./gradlew lint test
-      - store_artifacts:
-          path: app/build/reports
-          destination: reports
-      - store_test_results:
-          path: app/build/test-results
-      - run:
-          name: Notify fail
-          command: |
-            if [ "${CIRCLE_BRANCH}" == "develop" ] || [ "${CIRCLE_BRANCH}" == "master" ]; then
-              fastlane send_fail_message
-            fi
-              when: on_fail
+    steps: *checkout_test_build
+  build_master:
+    <<: *default_work_dir
+    docker:
+      - image: circleci/android:api-26-alpha
+    environment:
+          JVM_OPTS: -Xmx3200m
+    steps: *checkout_test_build
