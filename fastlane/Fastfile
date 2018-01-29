@@ -35,3 +35,12 @@ platform :android do
     upload_to_play_store
   end
 end
+
+lane :send_fail_message do
+    slack(
+      message: 'Build failed',
+      success: false,
+      slack_url: 'https://hooks.slack.com/services/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',
+      channel: '#build'
+    )
+end
